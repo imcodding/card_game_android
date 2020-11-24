@@ -55,7 +55,7 @@ public class RecordAdapter extends RecyclerView.Adapter<RecordAdapter.RecordHold
         public RecordHolder(@NonNull View itemView) {
             super(itemView);
 
-            tvScore = itemView.findViewById(R.id.tv_score);
+            tvScore = itemView.findViewById(R.id.game_tv_score);
             tvRank = itemView.findViewById(R.id.tv_rank);
             tvNickname = itemView.findViewById(R.id.tv_nickname);
             tvDate = itemView.findViewById(R.id.tv_date);

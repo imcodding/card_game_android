@@ -8,8 +8,8 @@ public class Card {
     private int backImgId;
 
     public Card() {
-        this.defaultImgId = R.drawable.image_default;
-        this.backImgId = R.drawable.back;
+        this.defaultImgId = R.drawable.card_default;
+        this.backImgId = R.drawable.card_back;
         this.isFront = true;
     }
 

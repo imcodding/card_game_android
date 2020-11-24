@@ -84,7 +84,7 @@ public class CardAdapter extends RecyclerView.Adapter<CardAdapter.CardHolder> {
     public void start() {
         for(Card card: cards) {
             card.setFront(true);
-            card.setDefaultImgId(R.drawable.image_default);
+            card.setDefaultImgId(R.drawable.card_default);
         }
     }
 }

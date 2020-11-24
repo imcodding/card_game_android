@@ -29,26 +29,29 @@ import com.example.cardproject.interfaces.OnItemClickListener;
 import com.example.cardproject.R;
 import com.example.cardproject.adapter.CardAdapter;
 import com.example.cardproject.model.Card;
+import com.example.cardproject.model.Game;
 
 
 public class GameFragment extends Fragment implements OnItemClickListener {
 
+    // view
+    CardAdapter mCardAdapter;
+    ProgressBar mProgressBar;
+    RecyclerView mGameRvCardList;
+    TextView mGameTvTime, mGameTvScore;
+
+    // timer
+    Timer mTimer;
+    TimerTask mTimerTask;
+
+    // data
     ArrayList<Card> cards;
     ArrayList<Integer> images;
-
-    CardAdapter adapter;
-
-    ProgressBar progressBar;
-    TextView tvTime, tvScore;
-    RecyclerView rvCardList;
-
-    TimerTask tt;
-    Timer timer;
 
     int selected1, selected2;
     int count, totalCount, answerCount;
     int counter, score;
-    int TOTAL, ANSWER, RANDOM_SIZE;
+    int TOTAL, ANSWER, RANDOM_SIZE; // RANDOM_SIZE: 뒤집어지는 쌍 개수
 
 //    Thread thread;
 
@@ -58,10 +61,10 @@ public class GameFragment extends Fragment implements OnItemClickListener {
 
         View view = inflater.inflate(R.layout.fragment_game, container, false);
 
-        progressBar = view.findViewById(R.id.progressBar);
-        tvTime =  view.findViewById(R.id.tv_time);
-        tvScore = view.findViewById(R.id.tv_score);
-        rvCardList = view.findViewById(R.id.rv_card_list);
+        mProgressBar = view.findViewById(R.id.progressBar);
+        mGameTvTime =  view.findViewById(R.id.game_tv_time);
+        mGameTvScore = view.findViewById(R.id.game_tv_score);
+        mGameRvCardList = view.findViewById(R.id.game_rv_card_list);
 
         valueSet();
 
@@ -70,14 +73,15 @@ public class GameFragment extends Fragment implements OnItemClickListener {
         shuffleCards();
 
         GridLayoutManager manager = new GridLayoutManager(getContext(), 3);
-        rvCardList.setLayoutManager(manager);
-        adapter = new CardAdapter(cards);
-        adapter.setListener(this);
-        rvCardList.setAdapter(adapter);
+        mGameRvCardList.setLayoutManager(manager);
+        mCardAdapter = new CardAdapter(cards);
+        mCardAdapter.setListener(this);
+        mGameRvCardList.setAdapter(mCardAdapter);
 
         startTimer();
 
         resetThread(2000);
+
 
         return view;
     }
@@ -111,7 +115,7 @@ public class GameFragment extends Fragment implements OnItemClickListener {
                 totalCount += 1;
 
                 // 기본 이미지 선택 시 무조건 다시
-                if(selected1 == R.drawable.image_default || selected2 == R.drawable.image_default) {
+                if(selected1 == R.drawable.card_default || selected2 == R.drawable.card_default) {
                     cardValueReset();
 
                     resetThread(1000);
@@ -124,7 +128,7 @@ public class GameFragment extends Fragment implements OnItemClickListener {
                     if(selected1 == selected2) {
                         answerCount += 1;
                         score += 123;
-                        tvScore.setText(numberFormat(score));
+                        mGameTvScore.setText(numberFormat(score));
                     } else {
                         answerCount = 0;
                         totalCount = 0;
@@ -137,11 +141,11 @@ public class GameFragment extends Fragment implements OnItemClickListener {
                 if(totalCount == TOTAL) {
                     if(answerCount == ANSWER) {
                         score += 1000;
-                        tvScore.setText(numberFormat(score));
-                        adapter.start();
+                        mGameTvScore.setText(numberFormat(score));
+                        mCardAdapter.start();
                         changeLevel();
-                        adapter.setCards(cards);
-                        adapter.notifyDataSetChanged();
+                        mCardAdapter.setCards(cards);
+                        mCardAdapter.notifyDataSetChanged();
                     }
                     cardValueReset();
                     resetThread(1000);
@@ -220,11 +224,11 @@ public class GameFragment extends Fragment implements OnItemClickListener {
             public void run() {
                 try {
                     Thread.sleep(milli);
-                    adapter.reset();
+                    mCardAdapter.reset();
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
-                            adapter.notifyDataSetChanged();
+                            mCardAdapter.notifyDataSetChanged();
                         }
                     });
                 } catch (InterruptedException e) {
@@ -237,7 +241,7 @@ public class GameFragment extends Fragment implements OnItemClickListener {
 
 
     private void startTimer() {
-        tt = new TimerTask() {
+        mTimerTask = new TimerTask() {
             @Override
             public void run() {
                 counter--;
@@ -245,10 +249,10 @@ public class GameFragment extends Fragment implements OnItemClickListener {
                 getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        tvTime.setText(String.valueOf(counter));
-                        progressBar.incrementProgressBy(1);
+                        mGameTvTime.setText(String.valueOf(counter));
+                        mProgressBar.incrementProgressBy(1);
                         if (counter <= 10) {
-                            progressBar.setProgressDrawable(getActivity().getDrawable(R.drawable.progress_red));
+                            mProgressBar.setProgressDrawable(getActivity().getDrawable(R.drawable.progress_red));
                         }
                         if(counter <= 0) {
                             showDialog();
@@ -257,18 +261,18 @@ public class GameFragment extends Fragment implements OnItemClickListener {
                 });
             }
         };
-        timer = new Timer();
-        timer.schedule(tt, 1000, 1000);
+        mTimer = new Timer();
+        mTimer.schedule(mTimerTask, 1000, 1000);
     }
 
     private void stopTimer() {
-        if (tt != null) {
-            tt.cancel();
+        if (mTimerTask != null) {
+            mTimerTask.cancel();
         }
 
-        if (timer != null) {
-            timer.cancel();
-            timer.purge();
+        if (mTimer != null) {
+            mTimer.cancel();
+            mTimer.purge();
         }
     }
 
@@ -289,19 +293,19 @@ public class GameFragment extends Fragment implements OnItemClickListener {
             public void onClick(View v) {
                 valueSet();
 
-                adapter.start();
+                mCardAdapter.start();
                 shuffleCards();
-                adapter.setCards(cards);
-                adapter.notifyDataSetChanged();
+                mCardAdapter.setCards(cards);
+                mCardAdapter.notifyDataSetChanged();
 
                 resetThread(1500);
 
                 startTimer();
 
-                progressBar.setProgress(0);
-                progressBar.setProgressDrawable(getActivity().getDrawable(R.drawable.progress_custom));
+                mProgressBar.setProgress(0);
+                mProgressBar.setProgressDrawable(getActivity().getDrawable(R.drawable.progress_custom));
 
-                tvScore.setText(String.valueOf(score));
+                mGameTvScore.setText(String.valueOf(score));
 
                 dialog.dismiss();
             }
