@@ -76,13 +76,13 @@ public class CardAdapter extends RecyclerView.Adapter<CardAdapter.CardHolder> {
         this.cards = cards;
     }
 
-    public void reset() {
+    public void setAllBack() {
         for(Card card: cards) {
             card.setFront(false);
         }
     }
 
-    public void start() {
+    public void setAllFront() {
         for(Card card: cards) {
             card.setFront(true);
             card.setFrontImgId(R.drawable.card_default);

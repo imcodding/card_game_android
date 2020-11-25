@@ -5,10 +5,10 @@ import com.example.cardproject.dummy.DummyData;
 import java.util.ArrayList;
 
 public class Game {
-    private int cardCount;
+    private final int cardCount;
+    private final int gameTime;
     private int randomCoupleSize;
     private int answerCount;
-    private int gameTime;
     private int totalSelectCount;
     private ArrayList<Integer> mImageDrawables; // 카드 이미지
     private ArrayList<Card> mCards;

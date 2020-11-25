@@ -4,7 +4,6 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
 import android.app.AlertDialog;
-import android.media.Image;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.LayoutInflater;
@@ -17,7 +16,6 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import java.text.NumberFormat;
-import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -45,7 +43,7 @@ public class GameFragment extends Fragment implements OnItemClickListener {
     private TimerTask mTimerTask;
 
     int selectCount, totalCount, answerCount;
-    int gameTime, score = 0;
+    int mGameTime, score = 0;
 
     private Game mGame;
     private int selectFirst, selectSecond;
@@ -66,12 +64,12 @@ public class GameFragment extends Fragment implements OnItemClickListener {
         mGameTvTime =  view.findViewById(R.id.game_tv_time);
         mGameTvScore = view.findViewById(R.id.game_tv_score);
 
-        initValue();
-
         mGame = new Game();
         mCardAdapter = new CardAdapter(mGame.getCards());
         mCardAdapter.setListener(this);
         mGameRvCardList.setAdapter(mCardAdapter);
+
+        initValue();
 
         mGame.ready();
 
@@ -80,9 +78,15 @@ public class GameFragment extends Fragment implements OnItemClickListener {
         return view;
     }
 
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        stopTimer();
+    }
+
     private void start() {
         startTimer();
-        resetThread(2000);
+        flipThread(2000);
     }
 
     @Override
@@ -110,7 +114,7 @@ public class GameFragment extends Fragment implements OnItemClickListener {
                 // 기본 이미지 선택 시 무조건 다시
                 if(selectFirst == R.drawable.card_default || selectSecond == R.drawable.card_default) {
                     initValue();
-                    resetThread(1000);
+                    flipThread(1000);
                     return;
                 }
 
@@ -123,7 +127,7 @@ public class GameFragment extends Fragment implements OnItemClickListener {
                     } else {
                         answerCount = 0;
                         totalCount = 0;
-                        resetThread(1000);
+                        flipThread(1000);
                     }
                 }
 
@@ -131,13 +135,14 @@ public class GameFragment extends Fragment implements OnItemClickListener {
                     if(answerCount == mGame.getAnswerCount()) {
                         score += 1000;
                         mGameTvScore.setText(numberFormat(score));
-                        mCardAdapter.start();
+
                         mGame.changeLevel(score);
+                        mCardAdapter.setAllFront();
                         mCardAdapter.setCards(mGame.getCards());
                         mCardAdapter.notifyDataSetChanged();
                     }
                     initValue();
-                    resetThread(1000);
+                    flipThread(1000);
 
                 }
             }
@@ -147,22 +152,22 @@ public class GameFragment extends Fragment implements OnItemClickListener {
     }
 
     private void startTimer() {
-        gameTime = mGame.getGameTime();
+        mGameTime = mGame.getGameTime();
         mTimerTask = new TimerTask() {
             @Override
             public void run() {
-                gameTime--;
-                if(gameTime == 0) { stopTimer(); }
+                mGameTime--;
+                if(mGameTime == 0) { stopTimer(); }
                 getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        mGameTvTime.setText(String.valueOf(gameTime));
+                        mGameTvTime.setText(String.valueOf(mGameTime));
                         mProgressBar.incrementProgressBy(1);
-                        if (gameTime <= 10) {
+                        if (mGameTime <= 10) {
                             mProgressBar.setProgressDrawable(getActivity().getDrawable(R.drawable.progress_red));
                         }
-                        if(gameTime <= 0) {
-                            showDialog();
+                        if(mGameTime <= 0) {
+                            gameOver();
                         }
                     }
                 });
@@ -172,18 +177,7 @@ public class GameFragment extends Fragment implements OnItemClickListener {
         mTimer.schedule(mTimerTask, 1000, 1000);
     }
 
-    private void stopTimer() {
-        if (mTimerTask != null) {
-            mTimerTask.cancel();
-        }
-
-        if (mTimer != null) {
-            mTimer.cancel();
-            mTimer.purge();
-        }
-    }
-
-    private void showDialog() {
+    private void gameOver() {
         View view = LayoutInflater.from(getContext()).inflate(R.layout.dialog_end, null);
         Button btnRestart = view.findViewById(R.id.btn_restart);
         Button btnOk = view.findViewById(R.id.btn_ok);
@@ -200,13 +194,13 @@ public class GameFragment extends Fragment implements OnItemClickListener {
             public void onClick(View v) {
                 valueSet();
 
-                mCardAdapter.start();
+                mCardAdapter.setAllFront();
 //                shuffleCards();
 //                mCardAdapter.setCards(cards);
 
                 mCardAdapter.notifyDataSetChanged();
 
-                resetThread(1500);
+                flipThread(1500);
 
                 startTimer();
 
@@ -230,19 +224,14 @@ public class GameFragment extends Fragment implements OnItemClickListener {
         });
     }
 
-    private String numberFormat(int num) {
-        String numStr = NumberFormat.getInstance().format(num);
-        return numStr;
-    }
-
-    private void resetThread(int milli) {
+    private void flipThread(int milli) {
         Handler handler = new Handler();
         Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
                     Thread.sleep(milli);
-                    mCardAdapter.reset();
+                    mCardAdapter.setAllBack(); // 뒤집기
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
@@ -270,10 +259,21 @@ public class GameFragment extends Fragment implements OnItemClickListener {
     }
 
 
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        stopTimer();
+    private void stopTimer() {
+        if (mTimerTask != null) {
+            mTimerTask.cancel();
+        }
+
+        if (mTimer != null) {
+            mTimer.cancel();
+            mTimer.purge();
+        }
     }
+
+    private String numberFormat(int num) {
+        String numStr = NumberFormat.getInstance().format(num);
+        return numStr;
+    }
+
 
 }
