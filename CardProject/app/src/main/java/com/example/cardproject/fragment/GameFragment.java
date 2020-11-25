@@ -4,6 +4,7 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
 import android.app.AlertDialog;
+import android.media.Image;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.LayoutInflater;
@@ -35,26 +36,22 @@ import com.example.cardproject.model.Game;
 public class GameFragment extends Fragment implements OnItemClickListener {
 
     // view
-    CardAdapter mCardAdapter;
-    ProgressBar mProgressBar;
-    RecyclerView mGameRvCardList;
-    TextView mGameTvTime, mGameTvScore;
+    private CardAdapter mCardAdapter;
+    private ProgressBar mProgressBar;
+    private TextView mGameTvTime, mGameTvScore;
 
     // timer
-    Timer mTimer;
-    TimerTask mTimerTask;
+    private Timer mTimer;
+    private TimerTask mTimerTask;
 
-    // data
-    ArrayList<Card> cards;
-    ArrayList<Integer> images;
+    int selectCount, totalCount, answerCount;
+    int gameTime, score = 0;
 
-    int selected1, selected2;
-    int count, totalCount, answerCount;
-    int counter, score;
-    int TOTAL, ANSWER, RANDOM_SIZE; // RANDOM_SIZE: 뒤집어지는 쌍 개수
-
-//    Thread thread;
     private Game mGame;
+    private int selectFirst, selectSecond;
+    private boolean isFirst = true;
+
+//    private ArrayList<ImageView> images = new ArrayList<>();
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -63,29 +60,27 @@ public class GameFragment extends Fragment implements OnItemClickListener {
         View view = inflater.inflate(R.layout.fragment_game, container, false);
 
         GridLayoutManager manager = new GridLayoutManager(getContext(), 3);
-        mGameRvCardList = view.findViewById(R.id.game_rv_card_list);
+        RecyclerView mGameRvCardList = view.findViewById(R.id.game_rv_card_list);
         mGameRvCardList.setLayoutManager(manager);
         mProgressBar = view.findViewById(R.id.progressBar);
         mGameTvTime =  view.findViewById(R.id.game_tv_time);
         mGameTvScore = view.findViewById(R.id.game_tv_score);
 
-        valueSet();
+        initValue();
 
         mGame = new Game();
-        mGame.ready();
-//        cardAndImageSetting();
-//        shuffleCards();
-//        mCardAdapter = new CardAdapter(cards);
         mCardAdapter = new CardAdapter(mGame.getCards());
         mCardAdapter.setListener(this);
         mGameRvCardList.setAdapter(mCardAdapter);
 
-        gameStart();
+        mGame.ready();
+
+        start();
 
         return view;
     }
 
-    private void gameStart() {
+    private void start() {
         startTimer();
         resetThread(2000);
     }
@@ -94,37 +89,35 @@ public class GameFragment extends Fragment implements OnItemClickListener {
     public void onItemClick(View view, int pos) {
 
         Card card = mGame.getCardItem(pos);
+
+        if(isFirst) { selectFirst = card.getFrontImgId(); }
+        else { selectSecond = card.getFrontImgId(); }
+        isFirst = !isFirst;
+
         ImageView ivCard = view.findViewById(R.id.iv_card);
         ObjectAnimator animator = ObjectAnimator.ofFloat(ivCard, "rotationY", 0f, 180f);
-
-//        if(selected1 == 0) {
-//            selected1 = card.getDefaultImgId();
-//        } else {
-//            selected2 = card.getDefaultImgId();
-//        }
-
         animator.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
                 super.onAnimationEnd(animation);
+
                 ivCard.setEnabled(false);
-//                ivCard.setImageResource(card.getDefaultImgId());
-                count += 1;
-                totalCount += 1;
+                ivCard.setImageResource(card.getFrontImgId());
+
+                selectCount++;
+                totalCount++;
 
                 // 기본 이미지 선택 시 무조건 다시
-                if(selected1 == R.drawable.card_default || selected2 == R.drawable.card_default) {
-                    cardValueReset();
-
+                if(selectFirst == R.drawable.card_default || selectSecond == R.drawable.card_default) {
+                    initValue();
                     resetThread(1000);
-
                     return;
                 }
 
-                if(count == 2) {
-                    count = 0;
-                    if(selected1 == selected2) {
-                        answerCount += 1;
+                if(selectCount == 2) {
+                    selectCount = 0;
+                    if(selectFirst == selectSecond) {
+                        answerCount++;
                         score += 123;
                         mGameTvScore.setText(numberFormat(score));
                     } else {
@@ -132,21 +125,20 @@ public class GameFragment extends Fragment implements OnItemClickListener {
                         totalCount = 0;
                         resetThread(1000);
                     }
-                    selected1 = 0;
-                    selected2 = 0;
                 }
 
-                if(totalCount == TOTAL) {
-                    if(answerCount == ANSWER) {
+                if(totalCount == mGame.getTotalSelectCount()) {
+                    if(answerCount == mGame.getAnswerCount()) {
                         score += 1000;
                         mGameTvScore.setText(numberFormat(score));
                         mCardAdapter.start();
-                        changeLevel();
-                        mCardAdapter.setCards(cards);
+                        mGame.changeLevel(score);
+                        mCardAdapter.setCards(mGame.getCards());
                         mCardAdapter.notifyDataSetChanged();
                     }
-                    cardValueReset();
+                    initValue();
                     resetThread(1000);
+
                 }
             }
         });
@@ -154,37 +146,22 @@ public class GameFragment extends Fragment implements OnItemClickListener {
         animator.start();
     }
 
-    private void changeLevel() {
-        if(score < 2000) {
-            shuffleCards();
-        } else if(score < 4000) {
-            RANDOM_SIZE = 3;
-            TOTAL = RANDOM_SIZE * 2;
-            ANSWER = RANDOM_SIZE;
-            shuffleCards();
-        } else {
-            RANDOM_SIZE = 4;
-            TOTAL = RANDOM_SIZE * 2;
-            ANSWER = RANDOM_SIZE;
-            shuffleCards();
-        }
-    }
-
     private void startTimer() {
+        gameTime = mGame.getGameTime();
         mTimerTask = new TimerTask() {
             @Override
             public void run() {
-                counter--;
-                if(counter == 0) { stopTimer(); }
+                gameTime--;
+                if(gameTime == 0) { stopTimer(); }
                 getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        mGameTvTime.setText(String.valueOf(counter));
+                        mGameTvTime.setText(String.valueOf(gameTime));
                         mProgressBar.incrementProgressBy(1);
-                        if (counter <= 10) {
+                        if (gameTime <= 10) {
                             mProgressBar.setProgressDrawable(getActivity().getDrawable(R.drawable.progress_red));
                         }
-                        if(counter <= 0) {
+                        if(gameTime <= 0) {
                             showDialog();
                         }
                     }
@@ -224,8 +201,9 @@ public class GameFragment extends Fragment implements OnItemClickListener {
                 valueSet();
 
                 mCardAdapter.start();
-                shuffleCards();
-                mCardAdapter.setCards(cards);
+//                shuffleCards();
+//                mCardAdapter.setCards(cards);
+
                 mCardAdapter.notifyDataSetChanged();
 
                 resetThread(1500);
@@ -257,79 +235,6 @@ public class GameFragment extends Fragment implements OnItemClickListener {
         return numStr;
     }
 
-
-
-    private void valueSet() {
-        counter = 60;
-        score = 0;
-        selected1 = selected2 = 0;
-        count = totalCount = answerCount = 0;
-
-        TOTAL = 4;
-        ANSWER = 2;
-        RANDOM_SIZE = 2;
-    }
-
-    private void cardValueReset() {
-        count = 0;
-        totalCount = 0;
-        answerCount = 0;
-        selected1 = 0;
-        selected2 = 0;
-    }
-
-
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        stopTimer();
-    }
-
-    private void cardAndImageSetting() {
-        images = new ArrayList<>();
-        images.add(R.drawable.image1);
-//        images.add(R.drawable.image2);
-        images.add(R.drawable.image3);
-        images.add(R.drawable.image4);
-        images.add(R.drawable.image5);
-        images.add(R.drawable.image6);
-        images.add(R.drawable.image7);
-
-        cards = new ArrayList<>();
-        for(int i = 0; i < 12; i++) {
-            cards.add(new Card());
-        }
-    }
-
-    private void shuffleCards() {
-        // 이미지 뽑기
-        ArrayList<Integer> randomImages = new ArrayList<>();
-        for(int i = 0; i < RANDOM_SIZE; i++) {
-            int ranNum = (int)(Math.random() * 6); // 이미지 개수
-            if(randomImages.contains(ranNum)) {
-                i--;
-            } else {
-                randomImages.add(ranNum);
-            }
-        }
-        randomImages.addAll(randomImages);
-
-        // 실제 12개 중에 이미지가 변경될 index
-        ArrayList<Integer> setImageIndexes = new ArrayList<>();
-        for(int i = 0; i < RANDOM_SIZE * 2; i++) {
-            int ranNum = (int)(Math.random() * 12);
-            if(setImageIndexes.contains(ranNum)) {
-                i--;
-            } else {
-                setImageIndexes.add(ranNum);
-            }
-        }
-
-        for(int i = 0; i < setImageIndexes.size(); i++) {
-            cards.get(setImageIndexes.get(i)).setDefaultImgId(images.get(randomImages.get(i)));
-        }
-    }
-
     private void resetThread(int milli) {
         Handler handler = new Handler();
         Thread thread = new Thread(new Runnable() {
@@ -352,5 +257,23 @@ public class GameFragment extends Fragment implements OnItemClickListener {
         thread.start();
     }
 
+    private void valueSet() {
+        score = 0;
+        selectCount = totalCount = answerCount = 0;
+    }
+
+    private void initValue() {
+        isFirst = true;
+        selectCount = 0;
+        totalCount = 0;
+        answerCount = 0;
+    }
+
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        stopTimer();
+    }
 
 }

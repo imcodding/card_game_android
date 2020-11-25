@@ -20,6 +20,7 @@ public class CardAdapter extends RecyclerView.Adapter<CardAdapter.CardHolder> {
     OnItemClickListener listener;
 
 
+    public CardAdapter() {}
     public CardAdapter(ArrayList<Card> cards) {
         this.cards = cards;
     }
@@ -41,7 +42,7 @@ public class CardAdapter extends RecyclerView.Adapter<CardAdapter.CardHolder> {
     public void onBindViewHolder(@NonNull CardHolder holder, int position) {
         Card card = cards.get(position);
         if(card.isFront()) {
-            holder.ivCard.setImageResource(card.getDefaultImgId());
+            holder.ivCard.setImageResource(card.getFrontImgId());
             card.setFront(false);
         } else {
             holder.ivCard.setImageResource(card.getBackImgId());
@@ -84,7 +85,9 @@ public class CardAdapter extends RecyclerView.Adapter<CardAdapter.CardHolder> {
     public void start() {
         for(Card card: cards) {
             card.setFront(true);
-            card.setDefaultImgId(R.drawable.card_default);
+            card.setFrontImgId(R.drawable.card_default);
         }
     }
+
+
 }

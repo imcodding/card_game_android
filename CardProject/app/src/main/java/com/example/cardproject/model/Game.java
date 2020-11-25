@@ -9,13 +9,16 @@ public class Game {
     private int randomCoupleSize;
     private int answerCount;
     private int gameTime;
+    private int totalSelectCount;
     private ArrayList<Integer> mImageDrawables; // 카드 이미지
     private ArrayList<Card> mCards;
 
     public Game() {
         cardCount = 12;
+        gameTime = 60;
         randomCoupleSize = 2;
-        answerCount = 2;
+        answerCount = randomCoupleSize;
+        totalSelectCount = answerCount * 2;
 
         mImageDrawables = new DummyData().getImageDrawables();
         mCards = new ArrayList<>();
@@ -57,19 +60,22 @@ public class Game {
             int whatImageIdx = mImageDrawables.get(randomImages.get(i));
             int whereCardIdx = setImageIndexes.get(i);
 
-            mCards.get(whereCardIdx).setDefaultImgId(whatImageIdx);
+            mCards.get(whereCardIdx).setFrontImgId(whatImageIdx);
         }
     }
 
-    private void changeLevel(int score) {
+    public void changeLevel(int score) {
         if(score < 2000) {
             shuffleCards();
         } else if(score < 4000) {
             randomCoupleSize = 3;
             answerCount = randomCoupleSize;
+            totalSelectCount = randomCoupleSize * 2;
             shuffleCards();
         } else {
             randomCoupleSize = 4;
+            answerCount = randomCoupleSize;
+            totalSelectCount = randomCoupleSize * 2;
             shuffleCards();
         }
     }
@@ -84,5 +90,13 @@ public class Game {
 
     public Card getCardItem(int pos) {
         return mCards.get(pos);
+    }
+
+    public int getAnswerCount() {
+        return answerCount;
+    }
+
+    public int getTotalSelectCount() {
+        return totalSelectCount;
     }
 }

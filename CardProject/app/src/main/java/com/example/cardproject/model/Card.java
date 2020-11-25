@@ -3,12 +3,12 @@ package com.example.cardproject.model;
 import com.example.cardproject.R;
 
 public class Card {
-    private int defaultImgId;
+    private int frontImgId;
     private boolean isFront;
     private int backImgId;
 
     public Card() {
-        this.defaultImgId = R.drawable.card_default;
+        this.frontImgId = R.drawable.card_default;
         this.backImgId = R.drawable.card_back;
         this.isFront = true;
     }
@@ -21,12 +21,12 @@ public class Card {
         this.backImgId = backImgId;
     }
 
-    public int getDefaultImgId() {
-        return defaultImgId;
+    public int getFrontImgId() {
+        return frontImgId;
     }
 
-    public void setDefaultImgId(int defaultImgId) {
-        this.defaultImgId = defaultImgId;
+    public void setFrontImgId(int frontImgId) {
+        this.frontImgId = frontImgId;
     }
 
     public boolean isFront() {
