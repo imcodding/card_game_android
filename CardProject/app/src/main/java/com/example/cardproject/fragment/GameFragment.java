@@ -42,14 +42,10 @@ public class GameFragment extends Fragment implements OnItemClickListener {
     private Timer mTimer;
     private TimerTask mTimerTask;
 
-    int selectCount, totalCount, answerCount;
-    int mGameTime, score = 0;
-
     private Game mGame;
-    private int selectFirst, selectSecond;
-    private boolean isFirst = true;
-
-//    private ArrayList<ImageView> images = new ArrayList<>();
+    private int mSelectCnt, mTotalCnt, mAnswerCnt;
+    private int mGameTime, mScore;
+    private int mSelectFirst, mSelectSecond;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -69,11 +65,9 @@ public class GameFragment extends Fragment implements OnItemClickListener {
         mCardAdapter.setListener(this);
         mGameRvCardList.setAdapter(mCardAdapter);
 
-        initValue();
-
         mGame.ready();
 
-        start();
+        gameStart();
 
         return view;
     }
@@ -84,19 +78,22 @@ public class GameFragment extends Fragment implements OnItemClickListener {
         stopTimer();
     }
 
-    private void start() {
+    private void gameStart() {
+        initValue();
         startTimer();
-        flipThread(2000);
+        flipThread(Game.startFlipTime);
     }
 
+    /**
+     * 카드 선택
+     */
     @Override
     public void onItemClick(View view, int pos) {
 
         Card card = mGame.getCardItem(pos);
 
-        if(isFirst) { selectFirst = card.getFrontImgId(); }
-        else { selectSecond = card.getFrontImgId(); }
-        isFirst = !isFirst;
+        if(mSelectFirst == 0) { mSelectFirst = card.getFrontImgId(); }
+        else { mSelectSecond = card.getFrontImgId(); }
 
         ImageView ivCard = view.findViewById(R.id.iv_card);
         ObjectAnimator animator = ObjectAnimator.ofFloat(ivCard, "rotationY", 0f, 180f);
@@ -108,73 +105,46 @@ public class GameFragment extends Fragment implements OnItemClickListener {
                 ivCard.setEnabled(false);
                 ivCard.setImageResource(card.getFrontImgId());
 
-                selectCount++;
-                totalCount++;
+                mSelectCnt++;
+                mTotalCnt++;
 
                 // 기본 이미지 선택 시 무조건 다시
-                if(selectFirst == R.drawable.card_default || selectSecond == R.drawable.card_default) {
+                if(mSelectFirst == R.drawable.card_default || mSelectSecond == R.drawable.card_default) {
                     initValue();
-                    flipThread(1000);
+                    flipThread(Game.flipTime);
                     return;
                 }
 
-                if(selectCount == 2) {
-                    selectCount = 0;
-                    if(selectFirst == selectSecond) {
-                        answerCount++;
-                        score += 123;
-                        mGameTvScore.setText(numberFormat(score));
+                if(mSelectCnt == Game.selectLimit) {
+                    mSelectCnt = 0;
+                    if(mSelectFirst == mSelectSecond) {
+                        mAnswerCnt++;
+                        mScore += Game.goodScore;
+                        mSelectFirst = mSelectSecond = 0;
+                        mGameTvScore.setText(numberFormat(mScore));
                     } else {
-                        answerCount = 0;
-                        totalCount = 0;
-                        flipThread(1000);
+                        initValue();
+                        flipThread(Game.flipTime);
                     }
                 }
 
-                if(totalCount == mGame.getTotalSelectCount()) {
-                    if(answerCount == mGame.getAnswerCount()) {
-                        score += 1000;
-                        mGameTvScore.setText(numberFormat(score));
+                if(mTotalCnt == mGame.getTotalSelectCount()) {
+                    if(mAnswerCnt == mGame.getAnswerCount()) {
+                        mScore += Game.greatScore;
+                        mGameTvScore.setText(numberFormat(mScore));
 
-                        mGame.changeLevel(score);
                         mCardAdapter.setAllFront();
+                        mGame.changeLevel(mScore);
                         mCardAdapter.setCards(mGame.getCards());
                         mCardAdapter.notifyDataSetChanged();
                     }
                     initValue();
-                    flipThread(1000);
-
+                    flipThread(Game.flipTime);
                 }
             }
         });
         animator.setDuration(200);
         animator.start();
-    }
-
-    private void startTimer() {
-        mGameTime = mGame.getGameTime();
-        mTimerTask = new TimerTask() {
-            @Override
-            public void run() {
-                mGameTime--;
-                if(mGameTime == 0) { stopTimer(); }
-                getActivity().runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        mGameTvTime.setText(String.valueOf(mGameTime));
-                        mProgressBar.incrementProgressBy(1);
-                        if (mGameTime <= 10) {
-                            mProgressBar.setProgressDrawable(getActivity().getDrawable(R.drawable.progress_red));
-                        }
-                        if(mGameTime <= 0) {
-                            gameOver();
-                        }
-                    }
-                });
-            }
-        };
-        mTimer = new Timer();
-        mTimer.schedule(mTimerTask, 1000, 1000);
     }
 
     private void gameOver() {
@@ -192,22 +162,19 @@ public class GameFragment extends Fragment implements OnItemClickListener {
         btnRestart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                valueSet();
-
+                mScore = 0;
                 mCardAdapter.setAllFront();
-//                shuffleCards();
-//                mCardAdapter.setCards(cards);
 
+                mGame = new Game();
+                mGame.ready();
+                mCardAdapter.setCards(mGame.getCards());
                 mCardAdapter.notifyDataSetChanged();
+                mGameTvScore.setText(String.valueOf(mScore));
 
-                flipThread(1500);
-
-                startTimer();
+                gameStart();
 
                 mProgressBar.setProgress(0);
                 mProgressBar.setProgressDrawable(getActivity().getDrawable(R.drawable.progress_custom));
-
-                mGameTvScore.setText(String.valueOf(score));
 
                 dialog.dismiss();
             }
@@ -218,7 +185,7 @@ public class GameFragment extends Fragment implements OnItemClickListener {
             public void onClick(View v) {
                 dialog.dismiss();
                 String nickname = editNickname.getText().toString();
-                ((MainActivity)getActivity()).addRecord(score, nickname);
+                ((MainActivity)getActivity()).addRecord(mScore, nickname);
                 getActivity().onBackPressed();
             }
         });
@@ -246,18 +213,39 @@ public class GameFragment extends Fragment implements OnItemClickListener {
         thread.start();
     }
 
-    private void valueSet() {
-        score = 0;
-        selectCount = totalCount = answerCount = 0;
-    }
-
     private void initValue() {
-        isFirst = true;
-        selectCount = 0;
-        totalCount = 0;
-        answerCount = 0;
+        mSelectFirst = 0;
+        mSelectSecond = 0;
+        mSelectCnt = 0;
+        mTotalCnt = 0;
+        mAnswerCnt = 0;
     }
 
+    private void startTimer() {
+        mGameTime = mGame.getGameTime();
+        mTimerTask = new TimerTask() {
+            @Override
+            public void run() {
+                mGameTime--;
+                if(mGameTime == 0) { stopTimer(); }
+                getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mGameTvTime.setText(String.valueOf(mGameTime));
+                        mProgressBar.incrementProgressBy(1);
+                        if (mGameTime <= 10) {
+                            mProgressBar.setProgressDrawable(getActivity().getDrawable(R.drawable.progress_red));
+                        }
+                        if(mGameTime <= 0) {
+                            gameOver();
+                        }
+                    }
+                });
+            }
+        };
+        mTimer = new Timer();
+        mTimer.schedule(mTimerTask, 1000, 1000);
+    }
 
     private void stopTimer() {
         if (mTimerTask != null) {

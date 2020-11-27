@@ -10,8 +10,13 @@ public class Game {
     private int randomCoupleSize;
     private int answerCount;
     private int totalSelectCount;
-    private ArrayList<Integer> mImageDrawables; // 카드 이미지
-    private ArrayList<Card> mCards;
+    private final ArrayList<Integer> mImageDrawables; // 카드 이미지
+    private final ArrayList<Card> mCards;
+    public final static int selectLimit = 2;
+    public final static int startFlipTime = 2000;
+    public final static int flipTime = 500;
+    public final static int goodScore = 123;
+    public final static int greatScore = 1000;
 
     public Game() {
         cardCount = 12;
