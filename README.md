@@ -1,4 +1,7 @@
-# card_game_android
-This is card matching game.
+# 카드 맞추기 게임
 
-I used thread and animation functions.
+## Description
+- 같은 그림끼리 짝을 맞추는 게임이다. 제한시간은 1분이며 맞추면 점수가 올라가고, 점수가 높아질수록 짝을 맞춰야하는 개수가 늘어난다.
+
+- 쓰레드와 애니메이션을 사용하여 간단하게 만든 앱.
+
